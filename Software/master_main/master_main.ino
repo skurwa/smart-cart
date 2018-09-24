@@ -10,13 +10,13 @@
 
 // left wheel PID parameter containers and values
 float measLeftWheel, desLeftWheel;
-int pwmLeftWheel;
+int   pwmLeftWheel;
 float leftKp = 1;
 float leftKi = .01;
 float leftKd = .5;
 
 float measRightWheel, desRightWheel;
-int pwmRightWheel,
+int   pwmRightWheel,
 float rightKp = 1;
 float rightKi = .01;
 float rightKd = .5;
