@@ -1,4 +1,6 @@
 {
     "board": "arduino:avr:mega",
-    "configuration": "cpu=atmega2560"
+    "configuration": "cpu=atmega2560",
+    "port": "COM5",
+    "sketch": "Software\\testCode\\i2cCheck\\master_test\\master_test.ino"
 }
