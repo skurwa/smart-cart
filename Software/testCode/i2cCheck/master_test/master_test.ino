@@ -32,8 +32,7 @@ byte outPayload[2];
 
 static char doubleStr[15];
 
-void setup()
-{
+void setup() {
   // start I2C
   Wire.begin();
 
@@ -42,8 +41,7 @@ void setup()
   Serial.println("Master reading");
 }
 
-void loop()
-{
+void loop() {
     // read data from slaves
     Wire.requestFrom(2, PAYLOAD_SIZE);
     if (Wire.available() == PAYLOAD_SIZE) {
