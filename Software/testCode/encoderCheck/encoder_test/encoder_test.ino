@@ -3,7 +3,9 @@
 
 // pin definition
 const int encoderAPin = 2;
-const int encoderBPin = 3; // what if I didn't give 2 interrupt pins (worse accuracy but more available)?
+const int encoderBPin = 3;
+const int motorDirPin = 4;
+const int motorPWMPin = 5;
 
 //  parameters for velocity calculations
 int clicksPerOutRev = 1920; // from Pololu specifications
@@ -18,6 +20,10 @@ long lastMillis = 0;
 Encoder enc(encoderAPin, encoderBPin);
 
 void setup() {
+    // initialize pins
+    pinMode(motorDirPin, OUTPUT);
+    pinMode(motorPWMPin, OUTPUT);
+
     Serial.begin(9600);
     Serial.println("Reading shaft RPM: ");
 
@@ -27,6 +33,10 @@ void setup() {
 }
 
 void loop() {
+    // write outputs to motor
+    digitalWrite(motorDirPin, 1);
+    analogWrite(motorPWMPin, 100);
+
     if ((millis() - lastMillis) > sampTime) {
         // calculate wheel linear velocity (neglecting slip)
         wheelRPM = enc.read() * 60000.00 / (clicksPerOutRev * (millis() - lastMillis));

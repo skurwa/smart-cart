@@ -2,39 +2,75 @@
 #include <PID_v1.h>
 
 // i2c communication
-#define IN_PAYLOAD_SIZE 5     // incoming bytes from slaves
-#define OUT_PAYLOAD_SIZE 2    // outgoing bytes to slaves
-#define LEFT_WHEEL_ADDRESS 2  // address of left wheel  
-#define RIGHT_WHEEL_ADDRESS 3 // address of right wheel
+#define  IN_PAYLOAD_SIZE     5 // incoming bytes from slaves
+#define  OUT_PAYLOAD_SIZE    2 // outgoing bytes to slaves
+#define  LEFT_WHEEL_ADDRESS  2 // address of left wheel  
+#define  RIGHT_WHEEL_ADDRESS 3 // address of right wheel
 
 // containers
-char desiredOutputSwitch = 'b';
-
+char desiredOutputSwitch = 'f';
+long lastChange = 0;
 // PID
 double  measLeftWheel, desLeftWheel, pwmLeftWheel;
-double leftKp = 1;
-double leftKi = .01;
-double leftKd = .5;
+double leftKp = .9;
+double leftKi = .6;
+double leftKd = 0;
 double measRightWheel, desRightWheel, pwmRightWheel;
 double rightKp = 1;
 double rightKi = .01;
 double rightKd = .5;
-PID leftwheelAngVelPID(&measLeftWheel, &pwmLeftWheel, &desLeftWheel, leftKp, leftKi, leftKd, DIRECT);
-PID rightwheelAngVelPID(&measRightWheel, &pwmRightWheel, &desRightWheel, rightKp, rightKi, rightKd, DIRECT);
+PID leftWheelAngVelPID(&measLeftWheel, &pwmLeftWheel, &desLeftWheel, leftKp, leftKi, leftKd, DIRECT);
+PID rightWheelAngVelPID(&measRightWheel, &pwmRightWheel, &desRightWheel, rightKp, rightKi, rightKd, DIRECT);
 
 void setup() {
+  // for debug
+  Serial.begin(9600);
+
   // set limits on the PID outputs
-  leftwheelAngVelPID.SetOutputLimits(-255,255);
-  rightwheelAngVelPID.SetOutputLimits(-255,255);
+  leftWheelAngVelPID.SetOutputLimits(-255,255);
+  rightWheelAngVelPID.SetOutputLimits(-255,255);
 
   // start I2C
   Wire.begin();
+
+  leftWheelAngVelPID.SetMode(AUTOMATIC);
+  // rightWheelAngVelPID.SetMode(AUTOMATIC);
 }
 
 void loop() {
+  if ((millis() - lastChange > 10000) && (millis() - lastChange < 20000)) {
+    desiredOutputSwitch = 'p';
+  }
+  if ((millis() - lastChange > 20000) && (millis() - lastChange < 30000)) {
+    desiredOutputSwitch = 'f';
+  }
+  if ((millis() - lastChange > 30000) && (millis() - lastChange < 40000)) {
+    desiredOutputSwitch = 'b';
+  }
+  if ((millis() - lastChange > 40000) && (millis() - lastChange < 50000)) {
+    desiredOutputSwitch = 's';
+  }
+  if (millis() - lastChange > 50000) {
+    desiredOutputSwitch = 'p';
+  }
+  
+  // for debug
+  if (Serial.available() > 0) {
+    desiredOutputSwitch = Serial.read();
+  }
+  // Serial.print("Drive state: ");
+  // Serial.println(desiredOutputSwitch);
+  // Serial.print("Desired wheel velocity: ");
+  // Serial.println(desLeftWheel);
+  // Serial.print("Measured wheel velocity: ");
+  Serial.println(measLeftWheel);
+  // Serial.print("PWM command: ");
+  // Serial.println(pwmLeftWheel);
+
+  
   // update wheel speeds from slave controllers;
   getWheelAngVel(LEFT_WHEEL_ADDRESS, measLeftWheel);
-  getWheelAngVel(RIGHT_WHEEL_ADDRESS, measRightWheel);
+  // getWheelAngVel(RIGHT_WHEEL_ADDRESS, measRightWheel);
 
   // state machine to quickly move between drive states
   switch(desiredOutputSwitch) {
@@ -45,6 +81,7 @@ void loop() {
     case 's': // slow straight-line forward drive
       desLeftWheel  = 125;
       desRightWheel = 125;
+      break;
     case 'l': // turn left
       desLeftWheel  = 0;
       desRightWheel = 100;
@@ -56,29 +93,30 @@ void loop() {
     case 'b': // slow straight-line back up 
       desLeftWheel  = -125;
       desRightWheel = -125;
+      break;
     case 'p': // pause
       desLeftWheel  = 0;
       desRightWheel = 0;
       break;
     default: // default state is paused
-      desRightWheel = 0;
-      desLeftWheel  = 0;
+      desRightWheel = 250;
+      desLeftWheel  = 250;
   }
 
   // compute outputs based on updated measured and desired angular velocities
-  leftwheelAngVelPID.Compute();
-  rightwheelAngVelPID.Compute();
+  leftWheelAngVelPID.Compute();
+  // rightWheelAngVelPID.Compute();
 
   // send motor outputs to slave controllers;
   giveMotorOutput(LEFT_WHEEL_ADDRESS, pwmLeftWheel);
-  giveMotorOutput(RIGHT_WHEEL_ADDRESS, pwmRightWheel);
+  // giveMotorOutput(RIGHT_WHEEL_ADDRESS, pwmRightWheel);
 
   // loop delay
-  delay(500);
+  delay(25);
 }
 
 // request and process wheel angular velocity data from slave controllers
-void getWheelAngVel(byte address, double &wheelAngVel) {
+void getWheelAngVel(int address, double &wheelAngVel) {
   // local container to store incoming payload
   byte InPayload[IN_PAYLOAD_SIZE];
 
@@ -94,7 +132,7 @@ void getWheelAngVel(byte address, double &wheelAngVel) {
 }
 
 // provide updated PWM and direction outputs to slave controllers
-void giveMotorOutput(byte address, double output) {
+void giveMotorOutput(int address, double output) {
   // local container to package outgoing payload
   byte outPayload[OUT_PAYLOAD_SIZE];
 
@@ -106,7 +144,7 @@ void giveMotorOutput(byte address, double output) {
   else {
     outPayload[0] = 1;
   }
-  outPayload[1] = (byte) output; // check if this type conversion works
+  outPayload[1] = (byte) output;
 
   // send payload to slave controller
   Wire.beginTransmission(address);
@@ -128,8 +166,8 @@ double unpackWheelAngVel(byte Data[5]) {
   float wheelAngVel = u.fval;
 
   // assign directionality
-  if (Data[0] = 0) {
-      wheelAngVel = -wheelAngVel;
+  if (Data[0] == 0) {
+      wheelAngVel = -1 * wheelAngVel;
   }
   return (double) wheelAngVel;
 }
