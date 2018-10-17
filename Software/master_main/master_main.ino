@@ -115,6 +115,9 @@ void loop() {
   delay(25);
 }
 
+void getMotor 
+
+
 // request and process wheel angular velocity data from slave controllers
 void getWheelAngVel(int address, double &wheelAngVel) {
   // local container to store incoming payload
