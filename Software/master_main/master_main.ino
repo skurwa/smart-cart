@@ -2,10 +2,12 @@
 #include <PID_v1.h>
 
 // i2c communication
-#define  IN_PAYLOAD_SIZE     5 // incoming bytes from slaves
-#define  OUT_PAYLOAD_SIZE    2 // outgoing bytes to slaves
-#define  LEFT_WHEEL_ADDRESS  2 // address of left wheel  
-#define  RIGHT_WHEEL_ADDRESS 3 // address of right wheel
+#define US_IN_PAYLOAD_SIZE   1 // incoming bytes from ultrasonic slave
+#define ENC_IN_PAYLOAD_SIZE  5 // incoming bytes from encoder slave
+#define ENC_OUT_PAYLOAD_SIZE 2 // outgoing bytes to encoder slave
+#define LEFT_WHEEL_ADDRESS   2 // address of left wheel slave
+#define RIGHT_WHEEL_ADDRESS  3 // address of right wheel slave
+#define ULTRASONIC_ADDRESS   4 // address of ultrasonic slave
 
 // containers
 char desiredOutputSwitch = 'f';
@@ -121,13 +123,13 @@ void getMotor
 // request and process wheel angular velocity data from slave controllers
 void getWheelAngVel(int address, double &wheelAngVel) {
   // local container to store incoming payload
-  byte InPayload[IN_PAYLOAD_SIZE];
+  byte InPayload[ENC_IN_PAYLOAD_SIZE];
 
   // i2c comm to get payload from slave controller
-  Wire.requestFrom(address, IN_PAYLOAD_SIZE);
-  if (Wire.available() == IN_PAYLOAD_SIZE) {
+  Wire.requestFrom(address, ENC_IN_PAYLOAD_SIZE);
+  if (Wire.available() == ENC_IN_PAYLOAD_SIZE) {
     // get  wheel speed
-    for (int i = 0; i < IN_PAYLOAD_SIZE; i++) {
+    for (int i = 0; i < ENC_IN_PAYLOAD_SIZE; i++) {
       InPayload[i] = Wire.read();
     }
     wheelAngVel = unpackWheelAngVel(InPayload);
@@ -137,7 +139,7 @@ void getWheelAngVel(int address, double &wheelAngVel) {
 // provide updated PWM and direction outputs to slave controllers
 void giveMotorOutput(int address, double output) {
   // local container to package outgoing payload
-  byte outPayload[OUT_PAYLOAD_SIZE];
+  byte outPayload[ENC_OUT_PAYLOAD_SIZE];
 
   // reconfigure output to be packaged into byte payload
   if (output < 0) {
@@ -151,7 +153,7 @@ void giveMotorOutput(int address, double output) {
 
   // send payload to slave controller
   Wire.beginTransmission(address);
-  Wire.write(outPayload, OUT_PAYLOAD_SIZE);
+  Wire.write(outPayload, ENC_OUT_PAYLOAD_SIZE);
   Wire.endTransmission();
 }
 
@@ -173,4 +175,19 @@ double unpackWheelAngVel(byte Data[5]) {
       wheelAngVel = -1 * wheelAngVel;
   }
   return (double) wheelAngVel;
+}
+
+double getDesiredWheelAngVel() {
+  // local container to store incoming payload
+  byte InPayload[US_IN_PAYLOAD_SIZE];
+
+  // i2c comm to get payload from slave controller
+  Wire.requestFrom(address, ENC_IN_PAYLOAD_SIZE);
+  if (Wire.available() == ENC_IN_PAYLOAD_SIZE) {
+    // get wheel speed
+    for (int i = 0; i < ENC_IN_PAYLOAD_SIZE; i++) {
+      InPayload[i] = Wire.read();
+    }
+    wheelAngVel = unpackWheelAngVel(InPayload);
+  }
 }

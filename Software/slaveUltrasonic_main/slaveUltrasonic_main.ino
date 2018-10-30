@@ -3,7 +3,8 @@
 #include <Servo.h>
 
 #define MAX_DISTANCE 250
-#define OUT_PAYLOAD_SIZE 2
+#define OUT_PAYLOAD_SIZE 1
+#define ADDRESS 4
 
 // pin initialization
 const byte frontTrigPin      = 
@@ -30,8 +31,8 @@ NewPing sonar[SONAR_NUM] = {
   NewPing(rightTrigPin, rightEchoPin, MAX_DISTANCE)
 };
 
-byte Dist[3];
-
+int Dist[3];
+byte Packet[2];
 
 void setup() {
     Wire.begin(ADDRESS);
@@ -47,6 +48,7 @@ void loop() {
         // check for most open side  and then command the system to rotate towards it
         if (((Dist[4] >=  Dist[5]) && (Dist[5] != 0)) || (Dist[4] == 0)) {
             // payload package to turn to face the left
+            
         }
         else {
             // payload package to turn and face the right
