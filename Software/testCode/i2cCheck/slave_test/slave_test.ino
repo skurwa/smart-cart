@@ -2,12 +2,12 @@
 #include <Encoder.h>
 #include <Wire.h>
 
-#define OUT_PAYLOAD_SIZE  5
-#define ADDRESS           2
+const int OUT_PAYLOAD_SIZE = 5;
+const int ADDRESS          = 2;
 
 // pin definition
-const int encoderAPin = 2;
-const int encoderBPin = 3;
+const int encoderAPin = 3;
+const int encoderBPin = 2;
 const int motorDirPin = 4;
 const int motorPWMPin = 5;
 
@@ -58,9 +58,8 @@ void loop() {
 // when master asks for data
 void requestEvent() {
   // get direction
-  byte measDir;
   if (wheelAngVel < 0) {
-    wheelAngVel = -wheelAngVel;
+    wheelAngVel = -1 * wheelAngVel;
     OutPayload[0] = 0;
   }
   else {

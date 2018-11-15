@@ -2,8 +2,8 @@
 #include <Encoder.h>
 
 // pin definition
-const int encoderAPin = 2;
-const int encoderBPin = 3;
+const int encoderAPin = 3;
+const int encoderBPin = 2;
 const int motorDirPin = 4;
 const int motorPWMPin = 5;
 

@@ -6,20 +6,25 @@
 #define ADDRESS           2
 
 // pin definition
-const int encoderAPin = 2;
-const int encoderBPin = 3;
+const int encoderAPin = 3;
+const int encoderBPin = 2;
 const int motorDirPin = 4;
 const int motorPWMPin = 5;
 
 //  parameters for velocity calculations
 int clicksPerOutRev = 1920; // from Pololu specifications
-long sampTime       = 15;  // number of milliseconds to count clicks
+long sampTime       = 15;  // number of ms to count clicks
 
 // containers
 bool dir        = 0;
 int pwmWheel    = 0;
 float wheelRPM  = 0;
 long lastMillis = 0;
+
+union {
+  byte ByteArray[4];
+  float fval;
+} u;
 
 // define objects
 Encoder enc(encoderAPin, encoderBPin);
@@ -70,16 +75,11 @@ void requestEvent() {
     OutPayload[0] = 1;
   }
 
-  // union structure to convert floating point wheel velocity to byte array
-  union float2ByteArray {
-      byte ByteArray[4];
-      float floatVal;
-  } u;
-  u.floatVal = wheelRPM;
-  OutPayload[1] = u.ByteArray[0];
-  OutPayload[2] = u.ByteArray[1];
-  OutPayload[3] = u.ByteArray[2];
-  OutPayload[4] = u.ByteArray[3];
+  // convert wheel velocity float to byte array
+  u.fval = wheelRPM;
+  for (int i = 0; i < OUT_PAYLOAD_SIZE - 1; i++){
+    OutPayload[i + 1] = u.ByteArray[i];
+  }
 
   // send payload to master
   Wire.write(OutPayload, OUT_PAYLOAD_SIZE);
