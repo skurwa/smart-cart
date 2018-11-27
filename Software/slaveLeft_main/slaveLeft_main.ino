@@ -6,8 +6,8 @@
 #define ADDRESS           2
 
 // pin definition
-const int encoderAPin = 3;
-const int encoderBPin = 2;
+const int encoderAPin = 2;
+const int encoderBPin = 3;
 const int motorDirPin = 4;
 const int motorPWMPin = 5;
 
@@ -20,6 +20,7 @@ bool dir        = 0;
 int pwmWheel    = 0;
 float wheelRPM  = 0;
 long lastMillis = 0;
+long heartBeatTime = 0;
 
 union {
   byte ByteArray[4];
@@ -31,6 +32,7 @@ Encoder enc(encoderAPin, encoderBPin);
 
 void setup() {
   // initialize pins
+  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(motorDirPin, OUTPUT);
   pinMode(motorPWMPin, OUTPUT);
 
@@ -56,8 +58,14 @@ void loop() {
   }
 
   // write outputs to motor
-  digitalWrite(motorDirPin, dir);
+  digitalWrite(motorDirPin, !dir);
   analogWrite(motorPWMPin, pwmWheel);
+
+  if (millis() - heartBeatTime > 500) {
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    heartBeatTime = millis();
+  }
+  
 }
 
 // when master asks for data

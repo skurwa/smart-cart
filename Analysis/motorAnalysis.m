@@ -20,5 +20,5 @@ P.LineWidth = 5;
 ylabel(ax(1), "Torque (oz-in)", 'fontsize', fontsize);
 ylabel(ax(2), "Output Power (W)", 'fontsize', fontsize);
 xlabel("Speed (RPM)", 'fontsize', fontsize);
-title("Torque vs Output Power, 30:1 Pololu Motor", 'fontsize', fontsize);
+title("Output Torque and Power vs Speed, 30:1 Pololu Motor", 'fontsize', fontsize);
 

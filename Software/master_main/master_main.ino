@@ -10,12 +10,12 @@ const int LEFT_WHEEL_ADDRESS   = 2; // address of left wheel slave
 const int RIGHT_WHEEL_ADDRESS  = 3; // address of right wheel slave
 
 // containers
-char desiredOutputSwitch = 'p';
+char desiredOutputSwitch = 's';
 long lastChange = 0;
 union {
       byte byteArray[4];
       float fval;
-  } u;
+} u;
 
 // PID
 double measLeftWheel, desLeftWheel, pwmLeftWheel;
@@ -24,12 +24,15 @@ double leftKi = 4;
 double leftKd = .05;
 
 double measRightWheel, desRightWheel, pwmRightWheel;
-double rightKp = 1;
-double rightKi = .01;
-double rightKd = .5;
+double rightKp = 2.4;
+double rightKi = 4;
+double rightKd = .05;
 
 PID leftWheelAngVelPID(&measLeftWheel, &pwmLeftWheel, &desLeftWheel, leftKp, leftKi, leftKd, DIRECT);
 PID rightWheelAngVelPID(&measRightWheel, &pwmRightWheel, &desRightWheel, rightKp, rightKi, rightKd, DIRECT);
+
+long heartBeatTime = 0;
+
 
 void setup() {
   // for debug
@@ -43,15 +46,20 @@ void setup() {
   Wire.begin();
 
   leftWheelAngVelPID.SetMode(AUTOMATIC);
-  // rightWheelAngVelPID.SetMode(AUTOMATIC);
+  rightWheelAngVelPID.SetMode(AUTOMATIC);
+
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
   if ((millis() - lastChange < 5000)) {
     desiredOutputSwitch = 'p';
   }
-  if ((millis() - lastChange > 5000) && (millis() - lastChange < 30000)) {
+  if ((millis() - lastChange > 5000) && (millis() - lastChange < 15000)) {
     desiredOutputSwitch = 's';
+  }
+  else {
+    desiredOutputSwitch = 'p';
   }
 //  if ((millis() - lastChange > 30000) && (millis() - lastChange < 40000)) {
 //    desiredOutputSwitch = 'b';
@@ -66,18 +74,10 @@ void loop() {
   if (Serial.available()) {
     desiredOutputSwitch = Serial.read();
   }
-//  Serial.print("Drive state: ");
-//  Serial.println(desiredOutputSwitch);
-//  Serial.print("Desired wheel velocity: ");
-//  Serial.println(desLeftWheel);
-//  Serial.print("Measured wheel velocity: ");
-  Serial.println(measLeftWheel);
-//  Serial.print("PWM command: ");
-//  Serial.println(pwmLeftWheel);
-
+  
   // update wheel speeds from slave controllers;
   getWheelAngVel(LEFT_WHEEL_ADDRESS, measLeftWheel);
-  // getWheelAngVel(RIGHT_WHEEL_ADDRESS, measRightWheel);
+  getWheelAngVel(RIGHT_WHEEL_ADDRESS, measRightWheel);
 
   // state machine to quickly move between drive states
   switch(desiredOutputSwitch) {
@@ -86,8 +86,8 @@ void loop() {
       desRightWheel = 250;
       break;
     case 's': // slow straight-line forward drive
-      desLeftWheel  = 80;
-      desRightWheel = 80;
+      desLeftWheel  = 40;
+      desRightWheel = 40;
       break;
     case 'l': // turn left
       desLeftWheel  = 0;
@@ -113,11 +113,24 @@ void loop() {
 
   // compute outputs based on updated measured and desired angular velocities
   leftWheelAngVelPID.Compute();
-  // rightWheelAngVelPID.Compute();
+  rightWheelAngVelPID.Compute();
 
   // send motor outputs to slave controllers;
   giveMotorOutput(LEFT_WHEEL_ADDRESS, pwmLeftWheel);
-  // giveMotorOutput(RIGHT_WHEEL_ADDRESS, pwmRightWheel);
+  giveMotorOutput(RIGHT_WHEEL_ADDRESS, pwmRightWheel);
+
+  if (millis() - heartBeatTime > 500) {
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    heartBeatTime = millis();
+    Serial.print("Drive state: ");
+    Serial.println(desiredOutputSwitch);
+    //  Serial.print("Desired wheel velocity: ");
+    //  Serial.println(desLeftWheel);
+    Serial.print("Measured wheel velocity: ");
+    Serial.println(measLeftWheel);
+    Serial.print("PWM command: ");
+    Serial.println(pwmLeftWheel);
+  }
 
   // loop delay
   delay(50);

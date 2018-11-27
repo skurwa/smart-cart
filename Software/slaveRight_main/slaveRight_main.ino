@@ -13,19 +13,26 @@ const int motorPWMPin = 5;
 
 //  parameters for velocity calculations
 int clicksPerOutRev = 1920; // from Pololu specifications
-long sampTime       = 300;  // number of milliseconds to count clicks
+long sampTime       = 15;  // number of ms to count clicks
 
 // containers
-int dir         = 0;
+bool dir        = 0;
 int pwmWheel    = 0;
 float wheelRPM  = 0;
 long lastMillis = 0;
+long heartBeatTime = 0;
+
+union {
+  byte ByteArray[4];
+  float fval;
+} u;
 
 // define objects
 Encoder enc(encoderAPin, encoderBPin);
 
 void setup() {
   // initialize pins
+  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(motorDirPin, OUTPUT);
   pinMode(motorPWMPin, OUTPUT);
 
@@ -54,33 +61,33 @@ void loop() {
   digitalWrite(motorDirPin, dir);
   analogWrite(motorPWMPin, pwmWheel);
 
-  // loop delay
-  delay(50);
+  if (millis() - heartBeatTime > 500) {
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    heartBeatTime = millis();
+  }
+  
 }
 
 // when master asks for data
 void requestEvent() {
+  // payload container
+  byte OutPayload[OUT_PAYLOAD_SIZE];
+
   // get direction
   byte measDir;
-  byte OutPayload[OUT_PAYLOAD_SIZE];
   if (wheelRPM < 0) {
-    wheelRPM      = -wheelRPM;
+    wheelRPM      = -1 * wheelRPM;
     OutPayload[0] = 0;
   }
   else {
     OutPayload[0] = 1;
   }
 
-  // union structure to convert floating point wheel velocity to byte array
-  union float2ByteArray {
-      byte ByteArray[4];
-      float floatVal;
-  } u;
-  u.floatVal = wheelRPM;
-  OutPayload[1] = u.ByteArray[0];
-  OutPayload[2] = u.ByteArray[1];
-  OutPayload[3] = u.ByteArray[2];
-  OutPayload[4] = u.ByteArray[3];
+  // convert wheel velocity float to byte array
+  u.fval = wheelRPM;
+  for (int i = 0; i < OUT_PAYLOAD_SIZE - 1; i++){
+    OutPayload[i + 1] = u.ByteArray[i];
+  }
 
   // send payload to master
   Wire.write(OutPayload, OUT_PAYLOAD_SIZE);
